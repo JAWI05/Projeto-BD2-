@@ -1,0 +1,332 @@
+
+
+CREATE TABLE Categoria_Produto(
+  catp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  catp_nome TEXT NOT NULL
+);
+
+CREATE TABLE Produto(
+  prod_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  prod_nome TEXT NOT NULL,
+  prod_preco REAL NOT NULL,
+  prod_qtd_estoque INTEGER NOT NULL,
+  catp_catp_id INTEGER,
+  FOREIGN KEY(catp_catp_id) REFERENCES Categoria_Produto(catp_id)
+);
+
+CREATE TABLE Fornecedor(
+  forn_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  forn_nome TEXT NOT NULL,
+  forn_cnpj TEXT,
+  forn_telefone TEXT
+);
+
+CREATE TABLE Produto_Fornecedor(
+  pf_prod_id INTEGER,
+  pf_forn_id INTEGER,
+  PRIMARY KEY(pf_prod_id, pf_forn_id),
+  FOREIGN KEY(pf_prod_id) REFERENCES Produto(prod_id),
+  FOREIGN KEY(pf_forn_id) REFERENCES Fornecedor(forn_id)
+);
+
+CREATE TABLE Cliente(
+  cli_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cli_nome TEXT NOT NULL,
+  cli_cpf TEXT,
+  cli_telefone TEXT
+);
+
+CREATE TABLE Funcionario(
+  func_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  func_nome TEXT NOT NULL,
+  func_cargo TEXT,
+  func_salario REAL,
+  func_data_admissao DATE
+);
+
+CREATE TABLE Endereco_Cliente(
+  endc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  endc_rua TEXT,
+  endc_numero TEXT,
+  endc_bairro TEXT,
+  endc_cidade TEXT,
+  endc_estado TEXT,
+  endc_cli_id INTEGER,
+  FOREIGN KEY(endc_cli_id) REFERENCES Cliente(cli_id)
+);
+
+CREATE TABLE Venda(
+  venda_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_data DATE,
+  venda_valor_total REAL,
+  venda_cli_id INTEGER,
+  venda_func_id INTEGER,
+  FOREIGN KEY(venda_cli_id) REFERENCES Cliente(cli_id),
+  FOREIGN KEY(venda_func_id) REFERENCES Funcionario(func_id)
+);
+
+CREATE TABLE Item_Venda(
+  itemv_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  itemv_qtd INTEGER,
+  itemv_preco_unit REAL,
+  itemv_venda_id INTEGER,
+  itemv_prod_id INTEGER,
+  FOREIGN KEY(itemv_venda_id) REFERENCES Venda(venda_id),
+  FOREIGN KEY(itemv_prod_id) REFERENCES Produto(prod_id)
+);
+
+CREATE TABLE Compra(
+  comp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  comp_data DATE,
+  comp_valor_total REAL,
+  comp_forn_id INTEGER,
+  comp_func_id INTEGER,
+  FOREIGN KEY(comp_forn_id) REFERENCES Fornecedor(forn_id),
+  FOREIGN KEY(comp_func_id) REFERENCES Funcionario(func_id)
+);
+
+CREATE TABLE Item_Compra(
+  itemc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  itemc_qtd INTEGER,
+  itemc_preco_unit REAL,
+  itemc_comp_id INTEGER,
+  itemc_prod_id INTEGER,
+  FOREIGN KEY(itemc_comp_id) REFERENCES Compra(comp_id),
+  FOREIGN KEY(itemc_prod_id) REFERENCES Produto(prod_id)
+);
+
+CREATE TABLE Setor(
+  setor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  setor_nome TEXT
+);
+
+CREATE TABLE Funcionario_Setor(
+  fs_func_id INTEGER,
+  fs_setor_id INTEGER,
+  fs_data_inicio DATE,
+  fs_data_fim DATE,
+  PRIMARY KEY(fs_func_id, fs_setor_id),
+  FOREIGN KEY(fs_func_id) REFERENCES Funcionario(func_id),
+  FOREIGN KEY(fs_setor_id) REFERENCES Setor(setor_id)
+);
+
+CREATE TABLE Pagamento(
+  pag_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pag_metodo TEXT,
+  pag_valor REAL,
+  pag_data DATE,
+  pag_venda_id INTEGER,
+  FOREIGN KEY(pag_venda_id) REFERENCES Venda(venda_id)
+);
+
+CREATE TABLE Promocao(
+  promo_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  promo_percentual REAL,
+  promo_inicio DATE,
+  promo_fim DATE,
+  promo_prod_id INTEGER,
+  FOREIGN KEY(promo_prod_id) REFERENCES Produto(prod_id)
+);
+
+
+-- =========================
+-- CATEGORIA DE PRODUTO
+-- =========================
+INSERT INTO Categoria_Produto (catp_nome) VALUES
+('Alimentos'),
+('Bebidas'),
+('Higiene'),
+('Limpeza'),
+('Eletrônicos');
+
+-- =========================
+-- PRODUTO
+-- =========================
+INSERT INTO Produto (prod_nome, prod_preco, prod_qtd_estoque, catp_catp_id) VALUES
+('Arroz 5kg', 25.90, 100, 1),
+('Feijão 1kg', 8.50, 150, 1),
+('Refrigerante Cola 2L', 7.99, 200, 2),
+('Sabonete Neutro', 2.50, 300, 3),
+('Detergente 500ml', 3.20, 250, 4),
+('Smartphone A1', 1200.00, 20, 5);
+
+-- =========================
+-- FORNECEDOR
+-- =========================
+INSERT INTO Fornecedor (forn_nome, forn_cnpj, forn_telefone) VALUES
+('Fornecedor Alimentos LTDA', '11.222.333/0001-44', '(11) 2222-3333'),
+('Distribuidora Bebidas SA', '55.444.333/0001-22', '(21) 9999-8888'),
+('Higiclean Industria', '72.987.654/0001-55', '(41) 8888-7777'),
+('Tech Import', '01.456.789/0001-10', '(31) 5555-6666');
+
+-- =========================
+-- PRODUTO_FORNECEDOR
+-- =========================
+INSERT INTO Produto_Fornecedor (pf_prod_id, pf_forn_id) VALUES
+(1, 1),
+(2, 1),
+(3, 2),
+(4, 3),
+(5, 3),
+(6, 4);
+
+-- =========================
+-- CLIENTE
+-- =========================
+INSERT INTO Cliente (cli_nome, cli_cpf, cli_telefone) VALUES
+('João Silva', '123.456.789-00', '(11) 90000-1111'),
+('Maria Souza', '987.654.321-00', '(21) 91111-2222');
+
+-- =========================
+-- ENDEREÇO CLIENTE
+-- =========================
+INSERT INTO Endereco_Cliente (endc_rua, endc_numero, endc_bairro, endc_cidade, endc_estado, endc_cli_id) VALUES
+('Rua A', '123', 'Centro', 'São Paulo', 'SP', 1),
+('Rua B', '456', 'Jardim', 'Rio de Janeiro', 'RJ', 2);
+
+-- =========================
+-- FUNCIONARIO
+-- =========================
+INSERT INTO Funcionario (func_nome, func_cargo, func_salario, func_data_admissao) VALUES
+('Carlos Mendes', 'Gerente', 6500.00, '2020-01-10'),
+('Ana Pereira', 'Vendedora', 2500.00, '2021-03-15');
+
+-- =========================
+-- SETOR
+-- =========================
+INSERT INTO Setor (setor_nome) VALUES
+('Administração'),
+('Vendas'),
+('Estoque');
+
+-- =========================
+-- FUNCIONARIO_SETOR
+-- =========================
+INSERT INTO Funcionario_Setor (fs_func_id, fs_setor_id, fs_data_inicio, fs_data_fim) VALUES
+(1, 1, '2020-01-10', NULL),
+(2, 2, '2021-03-15', NULL);
+
+-- =========================
+-- VENDA
+-- =========================
+INSERT INTO Venda (venda_data, venda_valor_total, venda_cli_id, venda_func_id) VALUES
+('2025-01-10', 41.39, 1, 2),
+('2025-01-11', 18.99, 2, 2);
+
+-- =========================
+-- ITEM_VENDA
+-- =========================
+INSERT INTO Item_Venda (itemv_qtd, itemv_preco_unit, itemv_venda_id, itemv_prod_id) VALUES
+(1, 25.90, 1, 1),
+(2, 7.99, 1, 3),
+(1, 18.99, 2, 6);
+
+-- =========================
+-- PAGAMENTO
+-- =========================
+INSERT INTO Pagamento (pag_metodo, pag_valor, pag_data, pag_venda_id) VALUES
+('Cartão', 41.39, '2025-01-10', 1),
+('Dinheiro', 18.99, '2025-01-11', 2);
+
+-- =========================
+-- COMPRA (EMPRESA COMPRA DO FORNECEDOR)
+-- =========================
+INSERT INTO Compra (comp_data, comp_valor_total, comp_forn_id, comp_func_id) VALUES
+('2025-01-08', 1500.00, 1, 1),
+('2025-01-09', 2400.00, 4, 1);
+
+-- =========================
+-- ITEM_COMPRA
+-- =========================
+INSERT INTO Item_Compra (itemc_qtd, itemc_preco_unit, itemc_comp_id, itemc_prod_id) VALUES
+(100, 15.00, 1, 1),
+(50, 40.00, 1, 2),
+(10, 240.00, 2, 6);
+
+-- =========================
+-- PROMOÇÃO
+-- =========================
+INSERT INTO Promocao (promo_percentual, promo_inicio, promo_fim, promo_prod_id) VALUES
+(10.0, '2025-01-01', '2025-01-30', 1),
+(5.0, '2025-01-05', '2025-02-01', 3);
+
+
+
+
+
+--1) Relatório de vendas detalhado (cliente, funcionário e valor)
+CREATE VIEW vw_vendas_detalhadas AS
+SELECT
+    v.venda_id,
+    v.venda_data,
+    c.cli_nome AS cliente,
+    f.func_nome AS funcionario,
+    v.venda_valor_total
+FROM Venda v
+JOIN Cliente c ON v.venda_cli_id = c.cli_id
+JOIN Funcionario f ON v.venda_func_id = f.func_id
+ORDER BY v.venda_data DESC;
+
+
+
+--2) Itens vendidos por venda (com produto e valores)
+CREATE VIEW vw_itens_vendidos AS
+SELECT
+    v.venda_id,
+    v.venda_data,
+    p.prod_nome,
+    iv.itemv_qtd,
+    iv.itemv_preco_unit,
+    (iv.itemv_qtd * iv.itemv_preco_unit) AS total_item
+FROM Item_Venda iv
+JOIN Produto p ON iv.itemv_prod_id = p.prod_id
+JOIN Venda v ON iv.itemv_venda_id = v.venda_id
+ORDER BY v.venda_id, p.prod_nome;
+
+
+
+--3) Compras por fornecedor com valores
+CREATE VIEW vw_compras_fornecedores AS
+SELECT
+    co.comp_id,
+    co.comp_data,
+    f.forn_nome,
+    co.comp_valor_total
+FROM Compra co
+JOIN Fornecedor f ON co.comp_forn_id = f.forn_id
+ORDER BY co.comp_data DESC;
+
+
+
+--4) Estoque de produtos com categoria
+CREATE VIEW vw_estoque_produtos AS
+SELECT
+    p.prod_id,
+    p.prod_nome,
+    c.catp_nome AS categoria,
+    p.prod_qtd_estoque AS estoque,
+    p.prod_preco AS preco_unitario
+FROM Produto p
+JOIN Categoria_Produto c ON p.catp_catp_id = c.catp_id
+ORDER BY c.catp_nome, p.prod_nome;
+
+
+
+--5) Funcionários e setores em que trabalharam (histórico)
+CREATE VIEW vw_funcionarios_setores AS
+SELECT
+    f.func_nome,
+    s.setor_nome,
+    fs.fs_data_inicio,
+    fs.fs_data_fim
+FROM Funcionario_Setor fs
+JOIN Funcionario f ON fs.fs_func_id = f.func_id
+JOIN Setor s ON fs.fs_setor_id = s.setor_id
+ORDER BY f.func_nome, fs.fs_data_inicio;
+
+
+SELECT * FROM vw_vendas_detalhadas;
+SELECT * FROM vw_itens_vendidos;
+SELECT * FROM vw_compras_fornecedores;
+SELECT * FROM vw_estoque_produtos;
+SELECT * FROM vw_funcionarios_setores;
