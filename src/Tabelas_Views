@@ -1,0 +1,356 @@
+CREATE TABLE Categoria_Produto(
+  catp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  catp_nome TEXT NOT NULL
+);
+
+CREATE TABLE Produto(
+  prod_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  prod_nome TEXT NOT NULL,
+  prod_preco REAL NOT NULL,
+  prod_qtd_estoque INTEGER NOT NULL,
+  catp_catp_id INTEGER,
+  FOREIGN KEY(catp_catp_id) REFERENCES Categoria_Produto(catp_id)
+);
+
+CREATE TABLE Fornecedor(
+  forn_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  forn_nome TEXT NOT NULL,
+  forn_cnpj TEXT,
+  forn_telefone TEXT
+);
+
+CREATE TABLE Produto_Fornecedor(
+  pf_prod_id INTEGER,
+  pf_forn_id INTEGER,
+  PRIMARY KEY(pf_prod_id, pf_forn_id),
+  FOREIGN KEY(pf_prod_id) REFERENCES Produto(prod_id),
+  FOREIGN KEY(pf_forn_id) REFERENCES Fornecedor(forn_id)
+);
+
+CREATE TABLE Cliente(
+  cli_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cli_nome TEXT NOT NULL,
+  cli_cpf TEXT,
+  cli_telefone TEXT
+);
+
+CREATE TABLE Funcionario(
+  func_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  func_nome TEXT NOT NULL,
+  func_cargo TEXT,
+  func_salario REAL,
+  func_data_admissao DATE
+);
+
+CREATE TABLE Endereco_Cliente(
+  endc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  endc_rua TEXT,
+  endc_numero TEXT,
+  endc_bairro TEXT,
+  endc_cidade TEXT,
+  endc_estado TEXT,
+  endc_cli_id INTEGER,
+  FOREIGN KEY(endc_cli_id) REFERENCES Cliente(cli_id)
+);
+
+CREATE TABLE Venda(
+  venda_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_data DATE,
+  venda_valor_total REAL,
+  venda_cli_id INTEGER,
+  venda_func_id INTEGER,
+  FOREIGN KEY(venda_cli_id) REFERENCES Cliente(cli_id),
+  FOREIGN KEY(venda_func_id) REFERENCES Funcionario(func_id)
+);
+
+CREATE TABLE Item_Venda(
+  itemv_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  itemv_qtd INTEGER,
+  itemv_preco_unit REAL,
+  itemv_venda_id INTEGER,
+  itemv_prod_id INTEGER,
+  FOREIGN KEY(itemv_venda_id) REFERENCES Venda(venda_id),
+  FOREIGN KEY(itemv_prod_id) REFERENCES Produto(prod_id)
+);
+
+CREATE TABLE Compra(
+  comp_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  comp_data DATE,
+  comp_valor_total REAL,
+  comp_forn_id INTEGER,
+  comp_func_id INTEGER,
+  FOREIGN KEY(comp_forn_id) REFERENCES Fornecedor(forn_id),
+  FOREIGN KEY(comp_func_id) REFERENCES Funcionario(func_id)
+);
+
+CREATE TABLE Item_Compra(
+  itemc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  itemc_qtd INTEGER,
+  itemc_preco_unit REAL,
+  itemc_comp_id INTEGER,
+  itemc_prod_id INTEGER,
+  FOREIGN KEY(itemc_comp_id) REFERENCES Compra(comp_id),
+  FOREIGN KEY(itemc_prod_id) REFERENCES Produto(prod_id)
+);
+
+CREATE TABLE Setor(
+  setor_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  setor_nome TEXT
+);
+
+CREATE TABLE Funcionario_Setor(
+  fs_func_id INTEGER,
+  fs_setor_id INTEGER,
+  fs_data_inicio DATE,
+  fs_data_fim DATE,
+  PRIMARY KEY(fs_func_id, fs_setor_id, fs_data_inicio),
+  FOREIGN KEY(fs_func_id) REFERENCES Funcionario(func_id),
+  FOREIGN KEY(fs_setor_id) REFERENCES Setor(setor_id)
+);
+
+CREATE TABLE Pagamento(
+  pag_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pag_metodo TEXT,
+  pag_valor REAL,
+  pag_data DATE,
+  pag_venda_id INTEGER,
+  FOREIGN KEY(pag_venda_id) REFERENCES Venda(venda_id)
+);
+
+CREATE TABLE Promocao(
+  promo_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  promo_percentual REAL,
+  promo_inicio DATE,
+  promo_fim DATE,
+  promo_prod_id INTEGER,
+  FOREIGN KEY(promo_prod_id) REFERENCES Produto(prod_id)
+);
+
+
+
+
+--1) Relatório de vendas detalhado (cliente, funcionário e valor)
+CREATE VIEW vw_vendas_detalhadas AS
+SELECT
+    v.venda_id,
+    v.venda_data,
+    c.cli_nome AS cliente,
+    f.func_nome AS funcionario,
+    v.venda_valor_total
+FROM Venda v
+JOIN Cliente c ON v.venda_cli_id = c.cli_id
+JOIN Funcionario f ON v.venda_func_id = f.func_id
+ORDER BY v.venda_data DESC;
+
+
+
+--2) Itens vendidos por venda (com produto e valores)
+CREATE VIEW vw_itens_vendidos AS
+SELECT
+    v.venda_id,
+    v.venda_data,
+    p.prod_nome,
+    iv.itemv_qtd,
+    iv.itemv_preco_unit,
+    (iv.itemv_qtd * iv.itemv_preco_unit) AS total_item
+FROM Item_Venda iv
+JOIN Produto p ON iv.itemv_prod_id = p.prod_id
+JOIN Venda v ON iv.itemv_venda_id = v.venda_id
+ORDER BY v.venda_id, p.prod_nome;
+
+
+
+--3) Compras por fornecedor com valores
+CREATE VIEW vw_compras_fornecedores AS
+SELECT
+    co.comp_id,
+    co.comp_data,
+    f.forn_nome,
+    co.comp_valor_total
+FROM Compra co
+JOIN Fornecedor f ON co.comp_forn_id = f.forn_id
+ORDER BY co.comp_data DESC;
+
+
+
+--4) Estoque de produtos com categoria
+CREATE VIEW vw_estoque_produtos AS
+SELECT
+    p.prod_id,
+    p.prod_nome,
+    c.catp_nome AS categoria,
+    p.prod_qtd_estoque AS estoque,
+    p.prod_preco AS preco_unitario
+FROM Produto p
+JOIN Categoria_Produto c ON p.catp_catp_id = c.catp_id
+ORDER BY c.catp_nome, p.prod_nome;
+
+
+
+--5) Funcionários e setores em que trabalharam (histórico)
+CREATE VIEW vw_funcionarios_setores AS
+SELECT
+    f.func_nome,
+    s.setor_nome,
+    fs.fs_data_inicio,
+    fs.fs_data_fim
+FROM Funcionario_Setor fs
+JOIN Funcionario f ON fs.fs_func_id = f.func_id
+JOIN Setor s ON fs.fs_setor_id = s.setor_id
+ORDER BY f.func_nome, fs.fs_data_inicio;
+
+
+CREATE VIEW vw_estoque_por_categoria AS
+SELECT
+    cp.catp_nome AS categoria,
+    SUM(p.prod_qtd_estoque) AS qtd_total_estoque,
+    AVG(p.prod_preco) AS preco_medio_produto
+FROM Produto p
+JOIN Categoria_Produto cp ON p.catp_catp_id = cp.catp_id
+GROUP BY cp.catp_nome
+ORDER BY qtd_total_estoque DESC;
+
+
+CREATE VIEW vw_desempenho_vendas_mensal AS
+SELECT
+    strftime('%Y-%m', venda_data) AS ano_mes,
+    SUM(venda_valor_total) AS receita_mensal,
+    COUNT(venda_id) AS total_vendas
+FROM Venda
+GROUP BY ano_mes
+ORDER BY ano_mes DESC;
+
+CREATE VIEW vw_vendas_detalhadas AS
+SELECT
+v .venda_id,
+v .venda_data,
+c .cli_nome AS cliente,
+f .func_nome AS funcionario,
+v .venda_valor_total
+FROM Venda v
+JOIN Cliente c ON v .venda_cli_id = c .cli_id
+JOIN Funcionario f ON v .venda_func_id = f .func_id
+ORDER BY v .venda_data DESC ;
+
+CREATE VIEW vw_produtos_mais_vendidos AS
+SELECT
+    p.prod_nome AS produto,
+    cp.catp_nome AS categoria,
+    SUM(iv.itemv_qtd) AS total_qtd_vendida,
+    SUM(iv.itemv_qtd * iv.itemv_preco_unit) AS valor_total_vendido
+FROM Item_Venda iv
+JOIN Produto p ON iv.itemv_prod_id = p.prod_id
+JOIN Categoria_Produto cp ON p.catp_catp_id = cp.catp_id
+GROUP BY p.prod_nome, cp.catp_nome
+ORDER BY total_qtd_vendida DESC
+LIMIT 5;
+
+CREATE VIEW vw_total_gasto_por_cliente AS
+SELECT
+    c.cli_nome AS cliente,
+    COUNT(v.venda_id) AS total_de_vendas,
+    SUM(v.venda_valor_total) AS valor_total_gasto
+FROM Cliente c
+JOIN Venda v ON c.cli_id = v.venda_cli_id
+GROUP BY c.cli_nome
+ORDER BY valor_total_gasto DESC;
+
+
+CREATE VIEW vw_salario_medio_por_cargo AS
+SELECT
+    func_cargo AS cargo,
+    AVG(func_salario) AS salario_medio,
+    COUNT(func_id) AS total_funcionarios
+FROM Funcionario
+GROUP BY func_cargo
+ORDER BY salario_medio DESC;
+
+
+CREATE VIEW vw_promocoes_ativas AS
+SELECT
+    p.prod_nome AS produto,
+    cp.catp_nome AS categoria,
+    pm.promo_percentual,
+    pm.promo_inicio,
+    pm.promo_fim
+FROM Promocao pm
+JOIN Produto p ON pm.promo_prod_id = p.prod_id
+JOIN Categoria_Produto cp ON p.catp_catp_id = cp.catp_id
+WHERE DATE('now') BETWEEN pm.promo_inicio AND pm.promo_fim
+ORDER BY pm.promo_percentual DESC;
+
+CREATE VIEW vw_custo_medio_por_produto AS
+SELECT
+    p.prod_nome AS produto,
+    cp.catp_nome AS categoria,
+    AVG(ic.itemc_preco_unit) AS custo_medio_unitario,
+    p.prod_preco AS preco_venda,
+    (p.prod_preco - AVG(ic.itemc_preco_unit)) AS margem_lucro_unitaria,
+    ROUND(((p.prod_preco - AVG(ic.itemc_preco_unit)) / p.prod_preco * 100), 2) AS percentual_margem
+FROM Item_Compra ic
+JOIN Produto p ON ic.itemc_prod_id = p.prod_id
+JOIN Categoria_Produto cp ON p.catp_catp_id = cp.catp_id
+GROUP BY p.prod_nome, cp.catp_nome, p.prod_preco
+ORDER BY percentual_margem DESC;
+
+CREATE VIEW vw_estoque_critico AS
+SELECT
+    p.prod_nome,
+    p.prod_qtd_estoque,
+    CASE
+        WHEN p.prod_qtd_estoque <= 30 THEN 'CRÍTICO'
+        WHEN p.prod_qtd_estoque <= 50 THEN 'BAIXO'
+        ELSE 'NORMAL'
+    END AS nivel_alerta
+FROM Produto p
+WHERE p.prod_qtd_estoque <= 50
+ORDER BY p.prod_qtd_estoque ASC;
+
+CREATE VIEW vw_desempenho_fornecedores AS
+SELECT
+    f.forn_nome AS fornecedor,
+    COUNT(c.comp_id) AS total_compras,
+    SUM(c.comp_valor_total) AS valor_total_comprado
+FROM Fornecedor f
+JOIN Compra c ON f.forn_id = c.comp_forn_id
+GROUP BY f.forn_nome
+ORDER BY valor_total_comprado DESC;
+
+
+CREATE VIEW vw_fornecedores_por_produtos AS
+SELECT
+    f.forn_nome AS fornecedor,
+    COUNT(pf.pf_prod_id) AS total_produtos_fornecidos
+FROM Fornecedor f
+JOIN Produto_Fornecedor pf ON f.forn_id = pf.pf_forn_id
+GROUP BY f.forn_nome
+ORDER BY total_produtos_fornecidos DESC;
+
+
+CREATE VIEW vw_custo_medio_por_produto AS
+SELECT
+    p.prod_nome AS produto,
+    cp.catp_nome AS categoria,
+    AVG(ic.itemc_preco_unit) AS custo_medio_unitario
+FROM Item_Compra ic
+JOIN Produto p ON ic.itemc_prod_id = p.prod_id
+JOIN Categoria_Produto cp ON p.catp_catp_id = cp.catp_id
+GROUP BY p.prod_nome, cp.catp_nome
+ORDER BY custo_medio_unitario DESC;
+
+CREATE VIEW vw_estoque_produtos AS
+SELECT
+p .prod_id,
+p .prod_nome,
+c .catp_nome AS categoria,
+p .prod_qtd_estoque AS estoque,
+p .prod_preco AS preco_unitario
+FROM Produto p
+JOIN Categoria_Produto c ON p .catp_catp_id = c .catp_id
+ORDER BY c .catp_nome, p .prod_nome;
+
+SELECT * FROM vw_vendas_detalhadas;
+SELECT * FROM vw_itens_vendidos;
+SELECT * FROM vw_compras_fornecedores;
+SELECT * FROM vw_estoque_produtos;
+SELECT * FROM vw_funcionarios_setores;
